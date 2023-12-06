@@ -38,6 +38,10 @@ class Auth {
 
             const isCorrect = comparePassword(password, user.password)
 
+            if (!isCorrect) {
+                throw {name: "BadRequest", message: "Email or password are wrong"}
+            }
+            
             const token = sign({id: user.id, email: user.email}, process.env.JWT_SECRET)
 
             res.status(200).json({access_token: token})

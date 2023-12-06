@@ -161,7 +161,7 @@ class Controller {
             const {id:buyFundId} = req.params
             const {sellQuantity, FundId:sellFundId} = req.body
 
-            if (buyFundId === sellFundId) {
+            if (buyFundId == sellFundId) {
                 throw {name: "BadRequest", message: "Cannot switch to same funds"}
             }
 
