@@ -14,13 +14,15 @@ module.exports = (sequelize, DataTypes) => {
       Fund.belongsToMany(models.User, {through: models.UserFund, foreignKey: "FundId"})
       Fund.belongsToMany(models.User, {through: models.Transaction, foreignKey: "FundId"})
       Fund.hasMany(models.UserFund, {foreignKey: "FundId"})
+      Fund.belongsTo(models.Company, {foreignKey: "CompanyId"})
     }
   }
   Fund.init({
     name: DataTypes.STRING,
     value: DataTypes.INTEGER,
     quantity: DataTypes.INTEGER,
-    totalValue: DataTypes.INTEGER
+    totalValue: DataTypes.INTEGER,
+    CompanyId: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'Fund',
