@@ -4,6 +4,8 @@ const router = express.Router()
 
 router.get("/", Controller.getFunds)
 
-router.get("/:id", Controller.getFundById)
+router.get("/item/:id", Controller.getFundById)
+
+router.post("/buy/:id", Controller.buyFunds)
 
 module.exports = router
