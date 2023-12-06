@@ -12,4 +12,6 @@ router.post("/buy/:id", Controller.buyFunds)
 
 router.post("/sell/:id", Controller.sellFunds)
 
+router.post("/switch/:id", Controller.switchFunds)
+
 module.exports = router

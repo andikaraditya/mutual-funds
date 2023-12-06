@@ -153,6 +153,90 @@ class Controller {
             next(error)
         }
     }
+
+    static async switchFunds(req, res, next) {
+        const t = await sequelize.transaction()
+
+        try {
+            const {id:buyFundId} = req.params
+            const {sellQuantity, FundId:sellFundId} = req.body
+
+            if (buyFundId === sellFundId) {
+                throw {name: "BadRequest", message: "Cannot switch to same funds"}
+            }
+
+            const sellFund = await Fund.findByPk(sellFundId, {transaction: t})
+            const buyFund = await Fund.findByPk(buyFundId, {transaction: t})
+            const userFund = await UserFund.findOne({
+                where: {
+                    [Op.and]: [{FundId: sellFundId}, {UserId: req.user.id}]
+                }
+            }, {transaction: t})
+
+            if (sellQuantity > userFund.quantity) {
+                throw {name: "BadRequest", message: "Not enough funds to switch"}
+            }
+
+            const buyPower = Number(sellQuantity) * Number(sellFund.value)
+
+            if (buyPower < buyFund.value) {
+                throw {name: "BadRequest", message: "Not enough funds to switch"}
+            }
+            
+            const buyAmount = Math.floor(buyPower / buyFund.value)
+
+            await sellFund.update({
+                quantity: Number(sellFund.quantity) + Number(sellQuantity),
+                totalValue: (Number(sellFund.quantity) + Number(sellQuantity)) * sellFund.value
+            }, {transaction: t})
+
+            await userFund.update({
+                quantity: Number(userFund.quantity) - Number(sellQuantity),
+                totalValue: (Number(userFund.quantity) - Number(sellQuantity)) * sellFund.value
+            }, {transaction: t})
+
+            await buyFund.update({
+                quantity: Number(buyFund.quantity) - Number(buyAmount),
+                totalValue: (Number(buyFund.quantity) - Number(buyAmount)) * buyFund.value
+            }, {transaction: t})
+
+            let newUserFund = await UserFund.findOne({
+                where: {
+                    [Op.and]: [{FundId: buyFundId}, {UserId: req.user.id}]
+                }
+            }, {transaction: t})
+
+            // console.log(req.user)
+
+            if (!newUserFund) {
+                newUserFund = await UserFund.create({
+                    UserId: req.user.id,
+                    FundId: buyFundId,
+                    quantity: buyAmount,
+                    totalValue: buyAmount * buyFund.value
+                }, {transaction: t})
+            } else {
+                await newUserFund.update({
+                    quantity: Number(newUserFund.quantity) + Number(buyAmount),
+                    totalValue: (Number(newUserFund.quantity) + Number(buyAmount)) * buyFund.value
+                }, {transaction: t})
+            }
+
+            const transaction = await Transaction.create({
+                UserId: req.user.id,
+                FundId: buyFundId,
+                type: "switch",
+                quantity: buyAmount,
+                totalValue: buyAmount * buyFund.value
+            }, {transaction: t})
+
+            await t.commit()
+            res.status(201).json(transaction)
+        } catch (error) {
+            await t.rollback()
+            next(error)
+        }
+    }
 }
 
 module.exports = Controller
