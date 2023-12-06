@@ -167,6 +167,11 @@ class Controller {
 
             const sellFund = await Fund.findByPk(sellFundId, {transaction: t})
             const buyFund = await Fund.findByPk(buyFundId, {transaction: t})
+
+            if (sellFund.CompanyId !== buyFund.CompanyId) {
+                throw {name: "BadRequest", message: "Cannot switch funds to different company"}
+            }
+
             const userFund = await UserFund.findOne({
                 where: {
                     [Op.and]: [{FundId: sellFundId}, {UserId: req.user.id}]

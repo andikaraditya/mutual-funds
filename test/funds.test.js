@@ -19,6 +19,19 @@ beforeAll(async () => {
 
     access_token = sign({ id: 1, email: "user.test1@mail.com" }, process.env.JWT_SECRET)
 
+    await queryInterface.bulkInsert("Companies", [
+        {
+            name: "PT. Investasi Jaya",
+            createdAt: new Date(),
+            updatedAt: new Date()
+        },
+        {
+            name: "PT. Makmur Investasi",
+            createdAt: new Date(),
+            updatedAt: new Date()
+        },
+    ])
+
     await queryInterface.bulkInsert("Funds", [
         {
             name: "Agro Funds",
@@ -27,6 +40,7 @@ beforeAll(async () => {
             totalValue: 200000 * 2000,
             createdAt: new Date(),
             updatedAt: new Date(),
+            CompanyId: 1
         },
         {
             name: "Creative Funds",
@@ -35,6 +49,7 @@ beforeAll(async () => {
             totalValue: 150000 * 2500,
             createdAt: new Date(),
             updatedAt: new Date(),
+            CompanyId: 1
         },
         {
             name: "Tourism Funds",
@@ -43,6 +58,7 @@ beforeAll(async () => {
             totalValue: 200000 * 1000,
             createdAt: new Date(),
             updatedAt: new Date(),
+            CompanyId: 1
         },
         {
             name: "Manufacture Funds",
@@ -51,6 +67,7 @@ beforeAll(async () => {
             totalValue: 300000 * 3000,
             createdAt: new Date(),
             updatedAt: new Date(),
+            CompanyId: 1
         },
         {
             name: "Bonds",
@@ -59,6 +76,7 @@ beforeAll(async () => {
             totalValue: 100000 * 10000,
             createdAt: new Date(),
             updatedAt: new Date(),
+            CompanyId: 2
         },
         {
             name: "Oil Funds",
@@ -67,6 +85,7 @@ beforeAll(async () => {
             totalValue: 500000 * 1000,
             createdAt: new Date(),
             updatedAt: new Date(),
+            CompanyId: 2
         },
     ])
 
@@ -365,6 +384,22 @@ describe("POST Switch funds test", () => {
                 if (error) return done(error)
                 expect(response.status).toBe(400)
                 expect(response.body).toHaveProperty("message", "Not enough funds to switch")
+                return done()
+            })
+    })
+
+    test("400 Error to switch funds - switch to different company", (done) => {
+        request(app)
+            .post("/funds/switch/6")
+            .set({access_token})
+            .send({
+                sellQuantity: 1,
+                FundId: 2
+            })
+            .end((error, response) => {
+                if (error) return done(error)
+                expect(response.status).toBe(400)
+                expect(response.body).toHaveProperty("message", "Cannot switch funds to different company")
                 return done()
             })
     })
