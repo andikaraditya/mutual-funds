@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const {Fund, UserFund, Transaction, sequelize} = require('../models');
 
 class Controller {
@@ -59,7 +60,7 @@ class Controller {
 
             let userFund = await UserFund.findOne({
                 where: {
-                    FundId: fundId
+                    [Op.and]: [{FundId: fundId}, {UserId: req.user.id}]
                 }
             }, {transaction: t})
 
@@ -73,7 +74,7 @@ class Controller {
                     totalValue: quantity * fund.value
                 }, {transaction: t})
             } else {
-                userFund.update({
+                await userFund.update({
                     quantity: Number(userFund.quantity) + Number(quantity),
                     totalValue: (Number(userFund.quantity) + Number(quantity)) * fund.value
                 }, {transaction: t})
@@ -88,7 +89,61 @@ class Controller {
             }, {transaction: t})
 
             await fund.update({
-                quantity: Number(fund.quantity) - Number(quantity)
+                quantity: Number(fund.quantity) - Number(quantity),
+                totalValue: (Number(fund.quantity) - Number(quantity)) * fund.value
+            }, {transaction: t})
+
+            await t.commit()
+            res.status(201).json(transaction)
+        } catch (error) {
+            await t.rollback()
+            next(error)
+        }
+    }
+
+    static async sellFunds(req, res, next) {
+        const t = await sequelize.transaction()
+        try {
+            const {id:fundId} = req.params
+
+            const {quantity} = req.body
+
+            if (!quantity) {
+                throw {name: "BadRequest", message: "All forms must be filled"}
+            }
+
+            const userFund = await UserFund.findOne({
+                where: {
+                    [Op.and]: [{FundId: fundId}, {UserId: req.user.id}]
+                }
+            }, {transaction: t})
+
+            if (!userFund) {
+                throw {name: "BadRequest", message: "User do not own that funds"}
+            }
+
+            if (quantity > userFund.quantity || userFund.quantity === 0) {
+                throw {name: "BadRequest", message: "Sell quantity is more than owned funds"}
+            }
+
+            const fund = await Fund.findByPk(fundId, {transaction: t})
+
+            await fund.update({
+                quantity: Number(fund.quantity) + Number(quantity),
+                totalValue: (Number(fund.quantity) + Number(quantity)) * fund.value
+            }, {transaction: t})
+
+            await userFund.update({
+                quantity: Number(userFund.quantity) - Number(quantity),
+                totalValue: (Number(userFund.quantity) - Number(quantity)) * fund.value
+            }, {transaction: t})
+
+            const transaction = await Transaction.create({
+                UserId: req.user.id,
+                FundId: fundId,
+                type: "sell",
+                quantity: quantity,
+                totalValue: quantity * fund.value
             }, {transaction: t})
 
             await t.commit()

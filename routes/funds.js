@@ -10,4 +10,6 @@ router.get("/item/:id", Controller.getFundById)
 
 router.post("/buy/:id", Controller.buyFunds)
 
+router.post("/sell/:id", Controller.sellFunds)
+
 module.exports = router
