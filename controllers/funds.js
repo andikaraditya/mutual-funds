@@ -22,6 +22,24 @@ class Controller {
         }
     }
 
+    static async getOwnedFunds(req, res, next) {
+        try {
+            const ownedFunds = await UserFund.findAll({
+                where: {
+                    UserId: req.user.id
+                },
+                include: {
+                    model: Fund,
+                    attributes: ["name"]
+                }
+            })
+
+            res.status(200).json(ownedFunds)
+        } catch (error) {
+            next(error)
+        }
+    }
+
     static async buyFunds(req, res, next) {
         const t = await sequelize.transaction()
         try {
